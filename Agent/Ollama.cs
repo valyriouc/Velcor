@@ -6,9 +6,18 @@ using OllamaSharp.Models.Chat;
 
 namespace Agent;
 
-public sealed class Ollama(string url) : IDisposable
+public sealed class Ollama : IDisposable
 {
-    private readonly OllamaApiClient _client = new(url);
+    private readonly OllamaApiClient _client;
+    private readonly HttpClient _httpClient = new();
+
+    public Ollama(string url, uint timeout)
+    {
+        _httpClient.Timeout = TimeSpan.FromSeconds(timeout);
+        _httpClient.BaseAddress = new Uri(url);
+        _client = new OllamaApiClient(_httpClient);
+    }
+
 
     /// <summary>
     /// Sends the prompt to ollama using the default model to generate a response
@@ -68,7 +77,11 @@ public sealed class Ollama(string url) : IDisposable
         }
     }
     
-    public void Dispose() => _client.Dispose();
+    public void Dispose()
+    {
+        _client.Dispose();
+        _httpClient.Dispose();
+    }
 }
 
 public static class OllamaDefaults

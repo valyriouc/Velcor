@@ -6,21 +6,21 @@ namespace Agent;
 
 file class SearchQueryObject
 {
-    public string Query { get; set; }
+    public string Query { get; init; }
     
-    public string Rationale { get; set; }
+    public string Rationale { get; init; }
 }
 
-public class ResearchAgent(int researchCicles, Func<WebCaller> buildWebCaller)
+public class ResearchAgent(int researchCicles, Func<WebCaller> buildWebCaller) : IAgent
 {
-    public async IAsyncEnumerable<string> ExecuteAsync(string researchTask, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> ExecuteAsync(string query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using Ollama client = new Ollama(OllamaDefaults.DefaultEndpoint);
+        using Ollama client = new Ollama(OllamaDefaults.DefaultEndpoint, 1000);
         using WebCaller web = buildWebCaller.Invoke();
         
         List<Message> history = [ 
             new(ChatRole.System, "You are an research assistent which is responsible to find as many information as possible about a given topic and generate a summary highlighting the most important information"),
-            new(ChatRole.User, Prompts.GenerateQueryWriterPrompt(DateTime.UtcNow, researchTask))
+            new(ChatRole.User, Prompts.GenerateQueryWriterPrompt(DateTime.UtcNow, query))
         ];
         
         int internalCounter = 0;
@@ -53,7 +53,7 @@ public class ResearchAgent(int researchCicles, Func<WebCaller> buildWebCaller)
                     {searchResult} 
                     """;
                 history.Add(new Message(ChatRole.Tool, toolOutput));
-                history.Add(new Message(ChatRole.User, Prompts.GenerateReflectionPrompt(researchTask)));
+                history.Add(new Message(ChatRole.User, Prompts.GenerateReflectionPrompt(query)));
             }
             
             internalCounter++;
@@ -70,7 +70,10 @@ public class ResearchAgent(int researchCicles, Func<WebCaller> buildWebCaller)
             Stream = true,
         };
 
-        List<Message> end = await client.ChatAsync(summaryRequest, cancellationToken).ToListAsync();
+        List<Message> end = await client
+            .ChatAsync(summaryRequest, cancellationToken)
+            .ToListAsync();
+        
         foreach (var message in end)
         {
             if (message.Content is null)
