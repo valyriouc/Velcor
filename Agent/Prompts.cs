@@ -93,8 +93,6 @@ public static class Prompts
                    "query": "What are typical performance benchmarks and metrics used to evaluate [specific technology]?"
                }
                </Task>
-
-               Provide your analysis in JSON format:
                """;
     }
 }   

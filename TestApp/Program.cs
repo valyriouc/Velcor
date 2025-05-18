@@ -1,26 +1,14 @@
-﻿using Agent;
+﻿using System.Text;
+using Agent;
 using Agent.Tools;
 
 namespace TestApp;
-
-public class FileWriter : Tooling
-{
-    public FileWriter(string name, string description) : base(name, description)
-    {
-        
-    }
-
-    public override async Task<string> ExecuteAsync(string input, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
-}
 
 internal class Program
 {
     static async Task Main(string[] args)
     {
-        var content = File.ReadAllText("./secret.txt");
+        var content = await File.ReadAllTextAsync("./secret.txt");
         
         // ResearchAgent agent = new ResearchAgent(5, () => new LangSearchCaller(new LangSearchSettings()
         // {
@@ -47,11 +35,11 @@ internal class Program
 
         var dictionary = new Dictionary<string, Tooling>()
         {
-            { "FileWriter", new FileWriter("FileWriter", "This writes the content to a file") }
+            { "FileWriter", new FileWriter() }
         };
         
         PrototypingAgent agent = new PrototypingAgent(
-            "C:\\Users\\Valcor\\h4ck3r\\source\\testing", dictionary);
+            "C:\\Users\\Valcor\\h4ck3r\\src\\testing", dictionary);
         
         await foreach (var r in agent.ExecuteAsync("Write a http server in c#", CancellationToken.None))
         {
