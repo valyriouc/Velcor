@@ -44,9 +44,9 @@ public static class PrototypingAgencyPrompts
     public static string ReflectPlanPrompt(string application)
     {
         string reflect =
-            $"""
-            You are a critical thinker that is responsible for improving the given implementation 
-            plan for the application {application}.
+            $$"""
+            You are a critical thinker that is responsible for asking if the current approach in the given plan
+            for the application "{{application}}" is good or bad.
             
             <GOAL>
             - Identify gaps in the plan that could break the implementation of the application.
@@ -54,8 +54,23 @@ public static class PrototypingAgencyPrompts
             </GOAL>
             
             <FORMAT>
-            Output a list which all your identified gaps and questions
+            Please respond with a json object that has the following properties:
+            - isGood - A boolean saying whether the current plan is good or bad.
+            - remarks - A array of strings with your notes/questions
             </FORMAT>
+            
+            <EXAMPLE>
+            Here an example of the expected response:
+            {
+                "isGood": false,
+                "remarks": [
+                    "To detailed enough",
+                    "Missing correct logic"
+                ]            
+            }
+            </EXAMPLE>
+
+            Provide your response in JSON format:
             """;
 
         return reflect;
@@ -167,13 +182,22 @@ public class PrototypingAgent : IAgent, IDisposable
 
         string plan = sb.ToString().Trim();
 
+        string prompt =
+            $"""
+             Here is the plan you need to reflect on:
+             {plan}
+             """;
+        
         history =
         [
-            new Message(ChatRole.System, PrototypingAgencyPrompts.ReflectPlanPrompt(query))
-            new         
+            new Message(ChatRole.System, PrototypingAgencyPrompts.ReflectPlanPrompt(query)),
+            new Message(ChatRole.User, prompt)
         ];
-        
-        
+
+        await foreach (var m in _client.ChatAsync(request, cancellationToken))
+        {
+            Console.Write(m.Content);
+        }
         
         yield break;
     }
