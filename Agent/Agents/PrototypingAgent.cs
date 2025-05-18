@@ -1,7 +1,9 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Agent.Tools;
+using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
 using ChatRole = OllamaSharp.Models.Chat.ChatRole;
 
@@ -74,7 +76,7 @@ public static class PrototypingAgencyPrompts
             """;
 
         return reflect;
-    } 
+    }
     
     public static string GenerateProgrammingPrompt(
         string language,
@@ -142,69 +144,79 @@ public class PrototypingAgent : IAgent, IDisposable
     public async IAsyncEnumerable<string> ExecuteAsync(string query, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         List<Message> history = new();
-        
-        // history.Add(new Message(ChatRole.System, BuildSystemPrompt
-        //     (query, 
-        //         _workingDirectory,
-        //         _tools.Values.Select(x => $"{x.Name} - {x.Description}").ToList())));
         history.Add(
             new Message(ChatRole.System,
                 PrototypingAgencyPrompts.GeneratePlanningPrompt(query)));
         
-        var request = new ChatRequest()
+        ChatRequest request = new ChatRequest()
         {
             Messages = history,
             Model = model,
             Stream = true,
         };
 
-        StringBuilder sb = new();
+        RemarksResponse remarksObj;
 
-        bool now = false;
-        await foreach (var message in _client.ChatAsync(request, cancellationToken))
+        int counter = 0;
+        do
         {
-            if (message.Content is null)
+            // plan must get removed the </think>
+            string plan = await _client
+                .ChatAsync(request, cancellationToken)
+                .CutThinkingAsync()
+                .ToLlmResponseAsync();
+
+            counter++;
+            
+            await File.WriteAllTextAsync(
+                Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+                    $"plan{counter}.txt"),
+                plan,
+                cancellationToken);
+            
+            string prompt =
+                $"""
+                 Here is the plan you need to reflect on:
+                 {plan}
+                 """;
+
+            GenerateRequest validatePlan = new GenerateRequest()
             {
-                continue;
-            }
-
-            if (message.Content.Contains("</think>"))
-            {
-                now = true;
-                continue;
-            }
-
-            if (now)
-            {
-                sb.Append(message.Content);
-            }
-        }
-
-        string plan = sb.ToString().Trim();
-
-        string prompt =
-            $"""
-             Here is the plan you need to reflect on:
-             {plan}
-             """;
+                System = PrototypingAgencyPrompts.ReflectPlanPrompt(query),
+                Prompt = prompt,
+                Model = "llama3.2",
+                Format = "json",
+                Stream = true,
+            };
         
-        history =
-        [
-            new Message(ChatRole.System, PrototypingAgencyPrompts.ReflectPlanPrompt(query)),
-            new Message(ChatRole.User, prompt)
-        ];
+            string remarks = await _client
+                .GenerateAsync(validatePlan, cancellationToken)
+                .ToLlmResponseAsync();
+            
+            Console.WriteLine(remarks);
+            
+            remarksObj = JsonSerializer.Deserialize<RemarksResponse>(remarks, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true }) 
+                         ?? throw new Exception("Not correct remarks response");
 
-        request = new ChatRequest()
-        {
-            Messages = history,
-            Model = "llama3.2",
-            Stream = true,
-        };
-        
-        await foreach (var m in _client.ChatAsync(request, cancellationToken))
-        {
-            Console.Write(m.Content);
-        }
+            StringBuilder sb = new();
+            foreach (var remark in remarksObj.Remarks)
+            {
+                sb.AppendLine($"* {remark}");
+            }
+
+            string m =
+                $"""
+                 For this plan i have the following remarks:
+                 {sb}
+                 Please adapt the plan according to my notes
+                 """;
+            
+            history.Add(new Message(
+                ChatRole.User, 
+                m));
+            
+        } while (!remarksObj.IsGood);
         
         yield break;
     }
@@ -273,4 +285,66 @@ public class ToolResponse
     public string Tool { get; set; }
     
     public string Parameter { get; set; }
+}
+
+public class RemarksResponse
+{
+    public bool IsGood { get; set; }
+    
+    public List<string> Remarks { get; set; }
+}
+
+file static class LocalExtensions
+{
+    public static async IAsyncEnumerable<Message> CutThinkingAsync(this IAsyncEnumerable<Message> messages)
+    {
+        bool isThinking = true;
+        await foreach (var message in messages)
+        {
+            if (message.Content is null)
+            {
+                continue;
+            }
+
+            if (message.Content.ToLower().Contains("</think>"))
+            {
+                isThinking = false;
+                continue;
+            }
+
+            if (!isThinking)
+            {
+                yield return message;
+            }
+        } 
+    }
+    
+    public static async Task<string> ToLlmResponseAsync(this IAsyncEnumerable<Message> messages)
+    {
+        StringBuilder sb = new();
+        
+        await foreach (var message in messages)
+        {
+            if (message.Content is null)
+            {
+                continue;
+            }    
+            
+            sb.Append(message.Content);
+        }
+        
+        return sb.ToString().Trim();
+    }
+
+    public static async Task<string> ToLlmResponseAsync(this IAsyncEnumerable<string> messages)
+    {
+        StringBuilder sb = new();
+
+        await foreach (var message in messages)
+        {
+            sb.Append(message);
+        }
+        
+        return sb.ToString().Trim();
+    }
 }
