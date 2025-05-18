@@ -194,6 +194,13 @@ public class PrototypingAgent : IAgent, IDisposable
             new Message(ChatRole.User, prompt)
         ];
 
+        request = new ChatRequest()
+        {
+            Messages = history,
+            Model = "llama3.2",
+            Stream = true,
+        };
+        
         await foreach (var m in _client.ChatAsync(request, cancellationToken))
         {
             Console.Write(m.Content);
