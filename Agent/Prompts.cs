@@ -34,6 +34,7 @@ public static class Prompts
                  """;
     }
 
+    // ask: warum funktioniert das so gut mit den xml elementen
     public const string SummarizerPrompt =
         """
         <GOAL>
@@ -67,6 +68,8 @@ public static class Prompts
 
     public static string GenerateReflectionPrompt(string researchTopic)
     {
+        // todo: needs adaption so it guides the planning agent to some sort of fully detailed development
+        
         return $$"""
                You are an expert research assistant analyzing a summary about {{researchTopic}}.
 

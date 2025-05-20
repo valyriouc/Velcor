@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Agent;
+﻿using Agent;
 using Agent.Tools;
 
 namespace TestApp;
@@ -41,7 +40,8 @@ internal class Program
         PrototypingAgent agent = new PrototypingAgent(
             "C:\\Users\\Valcor\\h4ck3r\\src\\testing", dictionary);
         
-        await foreach (var r in agent.ExecuteAsync("Write a http server in c#", CancellationToken.None))
+        await foreach (var r in agent.ExecuteAsync(
+                           "Write a fully functional http parser in .NET 8.0 using c#", CancellationToken.None))
         {
             Console.WriteLine(r);
         }

@@ -2,120 +2,13 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using Agent.Prompting;
 using Agent.Tools;
 using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
 using ChatRole = OllamaSharp.Models.Chat.ChatRole;
 
 namespace Agent;
-
-public static class PrototypingAgencyPrompts
-{
-    public static string GeneratePlanningPrompt(
-        string application)
-    {
-        string planning =
-            $"""
-            You are a highly skilled software and planning architect. Your task is it to create a detailed plan 
-            to develop the architecture for a application {application}.
-            
-            <GOAL>
-            1. Identify everything that is needed to create the application.
-            2. Create proposals for interfaces between the different components of the application.
-            3. Output a detailed implementation plan with all technical details. This plan will later be given to a software developer
-            who is responsible for the actual implementation.
-            </GOAL> 
-            
-            <REQUIREMENTS>
-            Ensure that you consider every detail of the system.
-            </REQUIREMENTS>
-            
-            <FORMAT>
-            Format your response as a markdown spec that contains every step, class, etc.
-            so the developer can easily follow this plan to create the application.
-            </FORMAT>
-            
-            <TASK>
-            Reflect critically on your decisions so the best possible implementation plan is created.
-            </TASK>
-            """;
-
-        return planning;
-    }
-
-    public static string ReflectPlanPrompt(string application)
-    {
-        string reflect =
-            $$"""
-            You are a critical thinker that is responsible for asking if the current approach in the given plan
-            for the application "{{application}}" is good or bad.
-            
-            <GOAL>
-            - Identify gaps in the plan that could break the implementation of the application.
-            - Question every assumption in the plan to find out if the plan considers the best approaches, technologies, etc.
-            </GOAL>
-            
-            <FORMAT>
-            Please respond with a json object that has the following properties:
-            - isGood - A boolean saying whether the current plan is good or bad.
-            - remarks - A array of strings with your notes/questions
-            </FORMAT>
-            
-            <EXAMPLE>
-            Here an example of the expected response:
-            {
-                "isGood": false,
-                "remarks": [
-                    "To detailed enough",
-                    "Missing correct logic"
-                ]            
-            }
-            </EXAMPLE>
-
-            Provide your response in JSON format:
-            """;
-
-        return reflect;
-    }
-    
-    public static string GenerateProgrammingPrompt(
-        string language,
-        string application,
-        Dictionary<string, Tooling> tools)
-    {
-        string coding =
-            $"""
-            You are a high-performance programmer skilled in the programming language {language}.
-            Your goal is it to program the application {application}. For this purpose you follow 
-            the plan that is given to you.
-            
-            <TOPIC>
-            {application}
-            </TOPIC> 
-            
-            <REQUIREMENTS>
-            Ensure that your application is completely functional and follows the best practices of software development.
-            Do not create empty classes or methods that need further development. You need to implement everything needed.
-            </REQUIREMENTS>
-            
-            <FORMAT>
-            
-            </FORMAT>
-            """;
-
-        return coding;
-    }
-
-    public static string GenerateTestingPrompt()
-    {
-        string testing =
-            """
-            
-            """;
-
-        return testing;
-    }
-}
 
 public class PrototypingAgent : IAgent, IDisposable
 {
@@ -157,21 +50,24 @@ public class PrototypingAgent : IAgent, IDisposable
 
         RemarksResponse remarksObj;
 
+        // planning round 
         int counter = 0;
+        string path;
         do
         {
-            // plan must get removed the </think>
             string plan = await _client
                 .ChatAsync(request, cancellationToken)
                 .CutThinkingAsync()
                 .ToLlmResponseAsync();
 
             counter++;
+
+            path = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!,
+                $"plan{counter}.txt");
             
             await File.WriteAllTextAsync(
-                Path.Combine(
-                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
-                    $"plan{counter}.txt"),
+                path,
                 plan,
                 cancellationToken);
             
@@ -216,7 +112,21 @@ public class PrototypingAgent : IAgent, IDisposable
                 ChatRole.User, 
                 m));
             
-        } while (!remarksObj.IsGood);
+        } while (!remarksObj.IsGood && counter < 1);
+        
+        string endPlan = await File.ReadAllTextAsync(path, cancellationToken);
+
+        GenerateRequest codingRequest = new GenerateRequest()
+        {
+            System = PrototypingAgencyPrompts.GenerateProgrammingPrompt(query),
+            Prompt = $"Please implement the plan in {endPlan}",
+            Model = "qwen2.5-coder:14b"
+        };
+
+        await foreach (var coding in _client.GenerateAsync(codingRequest, cancellationToken))
+        {
+            Console.Write(coding);
+        }
         
         yield break;
     }
