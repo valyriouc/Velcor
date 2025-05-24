@@ -1,9 +1,6 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 using Console = System.Console;
 
 namespace OllamaMcpClient;
