@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApp", "TestApp\TestApp.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneratedTestApp", "GeneratedTestApp\GeneratedTestApp.csproj", "{E897E3C7-8940-45A5-B0C0-98AA43B20C93}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebMcp", "WebMcp\WebMcp.csproj", "{5BDC8F59-EAE1-4296-8DF9-F10C13636C5C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OllamaMcpClient", "OllamaMcpClient\OllamaMcpClient.csproj", "{35CDD5B4-2421-4CD6-B219-48D0AB5F6BCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{E897E3C7-8940-45A5-B0C0-98AA43B20C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E897E3C7-8940-45A5-B0C0-98AA43B20C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E897E3C7-8940-45A5-B0C0-98AA43B20C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BDC8F59-EAE1-4296-8DF9-F10C13636C5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BDC8F59-EAE1-4296-8DF9-F10C13636C5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BDC8F59-EAE1-4296-8DF9-F10C13636C5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BDC8F59-EAE1-4296-8DF9-F10C13636C5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35CDD5B4-2421-4CD6-B219-48D0AB5F6BCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35CDD5B4-2421-4CD6-B219-48D0AB5F6BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35CDD5B4-2421-4CD6-B219-48D0AB5F6BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35CDD5B4-2421-4CD6-B219-48D0AB5F6BCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
