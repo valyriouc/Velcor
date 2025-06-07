@@ -27,7 +27,10 @@ class Program
 
         var ollamaChatClient = new OllamaChatClient(
             new Uri("http://localhost:11434"),
-            "llama3.2").AsBuilder().UseFunctionInvocation().Build();
+            "qwen3:8b")
+            .AsBuilder()
+            .UseFunctionInvocation()
+            .Build();
         
         IList<McpClientTool> tools = await mcpClient.ListToolsAsync();
 
@@ -62,18 +65,28 @@ class Program
                         Tools = [..tools]
                     });
 
-                var assistantMessage = response.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant);
+                await foreach (var m in ollamaChatClient.GetStreamingResponseAsync(
+                                   messages,
+                                   new ChatOptions
+                                   {
+                                       Tools = [..tools]
+                                   }))
+                {
+                    Console.Write(m.Text);
+                }
+                //
+                // var assistantMessage = response.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant);
 
-                if (assistantMessage != null)
-                {
-                    var textOutput = string.Join(" ", assistantMessage.Contents.Select(c => c.ToString()));
-                    Console.WriteLine("\n AI: " + textOutput);
-                }
-                else
-                {
-                    Console.WriteLine("\n AI: (no assistant message received)");
-                }
-                
+                // if (assistantMessage != null)
+                // {
+                //     var textOutput = string.Join(" ", assistantMessage.Contents.Select(c => c.ToString()));
+                //     Console.WriteLine("\n AI: " + textOutput);
+                // }
+                // else
+                // {
+                //     Console.WriteLine("\n AI: (no assistant message received)");
+                // }
+                //
             }
             catch (Exception ex)
             {

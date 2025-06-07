@@ -1,0 +1,6 @@
+@McpOllamaClient_HostAddress = http://localhost:5261
+
+GET {{McpOllamaClient_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

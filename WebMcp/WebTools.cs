@@ -49,4 +49,10 @@ public class WebTools
                     """;
         }
     }
+
+    [McpServerTool, Description("Returns the status information of an extraction workflow")]
+    public string GetStatus([Description("The name of the extraction workflow")] string extractionName) =>
+        """
+        The extraction was successful. It where 1000 items extracted. The data is mainly about cats and dogs.
+        """;
 }
